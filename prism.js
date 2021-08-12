@@ -27,7 +27,6 @@ var getPropsForSidebar = function () {
 };
 
 var createSidebarPaneCallback = function (sidebar) {
-    // sidebar.setPage("hello.html");
 
     // Update element properties
     function updateElementProperties() {
@@ -35,7 +34,6 @@ var createSidebarPaneCallback = function (sidebar) {
         // sidebar.setObject(getPropsForSidebar());        
     }
 
-    // Immediately update data on selection change
     panels.elements.onSelectionChanged.addListener(updateElementProperties);
 
     // Update data periodically
@@ -43,6 +41,3 @@ var createSidebarPaneCallback = function (sidebar) {
 };
 
 panels && panels.elements.createSidebarPane("Lit Prism", createSidebarPaneCallback);
-
-// bkg.console.log('Panels...', panels);
-// bkg.console.log(panels.elements);
