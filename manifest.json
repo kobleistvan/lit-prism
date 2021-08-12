@@ -1,6 +1,7 @@
 {
   "name": "Lit Prism",
   "description": "Inspects a selected lit-element webcomponent 'through a prism'. View and modify component properties on the fly through chrome developer tools.",
+  "author": "Köble István",
   "version": "0.2",
   "manifest_version": 3,
   "icons": {
