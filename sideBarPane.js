@@ -47,6 +47,7 @@ const computeComponentProperties = () => {
 
 let cachedResult = {};
 let rerenderData = true;
+let intervalId;
 
 const createSidebarPaneCallback = (sidebar) => {
 
@@ -72,12 +73,15 @@ const createSidebarPaneCallback = (sidebar) => {
         }
       }
     );
+
+
+    if (!intervalId) {
+      // Update data periodically
+      intervalId = setInterval(updateElementProperties, 250);
+    }
   }
 
   panels.elements.onSelectionChanged.addListener(updateElementProperties);
-
-  // Update data periodically
-  setInterval(updateElementProperties, 250);
 };
 
 panels && panels.elements.createSidebarPane("Lit Prism", createSidebarPaneCallback);
