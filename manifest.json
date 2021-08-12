@@ -18,5 +18,8 @@
     }
   },
   "devtools_page": "devtools.html",
-  "offline_enabled": true
+  "offline_enabled": true,
+  "permissions": [
+    "storage"
+  ]
 }

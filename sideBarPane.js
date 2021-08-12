@@ -44,38 +44,45 @@ const computeComponentProperties = () => {
   }
 };
 
-
 let cachedResult = {};
 let rerenderData = true;
 let intervalId;
+let updateElementProperties;
+let autoRefresh = true;
+
+chrome.storage.sync.get('settings', (data) => {
+  if (data.settings.autoRefresh === false) {
+    autoRefresh = false;
+  }
+});
 
 const createSidebarPaneCallback = (sidebar) => {
 
   // Update element properties
-  const updateElementProperties = () => {
+  updateElementProperties = () => {
     chrome.devtools.inspectedWindow.eval("(" + computeComponentProperties + ")()",
       (result, isException) => {
         if (isException) {
           if (JSON.stringify(cachedResult) !== JSON.stringify(isException)) {
-            rerender = true;
+            rerenderData = true;
           }
           cachedResult = isException;
         } else {
           if (JSON.stringify(cachedResult) !== JSON.stringify(result)) {
-            rerender = true;
+            rerenderData = true;
           }
           cachedResult = result;
         }
 
-        if (rerender) {
+        if (rerenderData) {
           sidebar.setObject(cachedResult);
-          rerender = false;
+          rerenderData = false;
         }
       }
     );
 
 
-    if (!intervalId) {
+    if (!intervalId && autoRefresh) {
       // Update data periodically
       intervalId = setInterval(updateElementProperties, 250);
     }
@@ -85,3 +92,16 @@ const createSidebarPaneCallback = (sidebar) => {
 };
 
 panels && panels.elements.createSidebarPane("Lit Prism", createSidebarPaneCallback);
+
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'sync' && changes.settings?.newValue) {
+    autoRefresh = Boolean(changes.settings.newValue.autoRefresh);
+
+    if (autoRefresh === false && intervalId) {
+      clearInterval(intervalId);
+      intervalId = null;
+    } else if (!intervalId) {
+      intervalId = setInterval(updateElementProperties, 250);
+    }
+  }
+});
