@@ -1,7 +1,7 @@
-var panels = chrome && chrome.devtools && chrome.devtools.panels;
-var bkg = chrome.extension.getBackgroundPage();
+const panels = chrome && chrome.devtools && chrome.devtools.panels;
+const bkg = chrome.extension.getBackgroundPage();
 
-var getPropsForSidebar = function () {
+const getPropsForSidebar = () => {
     if ($0) {
         if ($0.__data__ || $0.__data) {
             // Polymer element
@@ -26,12 +26,11 @@ var getPropsForSidebar = function () {
     }
 };
 
-var createSidebarPaneCallback = function (sidebar) {
+const createSidebarPaneCallback = (sidebar) => {
 
     // Update element properties
-    function updateElementProperties() {
+    const updateElementProperties = () => {
         sidebar.setExpression("(" + getPropsForSidebar + ")()");
-        // sidebar.setObject(getPropsForSidebar());        
     }
 
     panels.elements.onSelectionChanged.addListener(updateElementProperties);

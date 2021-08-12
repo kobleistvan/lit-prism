@@ -1,22 +1,21 @@
 {
-    "manifest_version": 2,
     "name": "Lit Prism",
-    "version": "0.1",
-
     "description": "Inspects a selected lit-element webcomponent 'through a prism'. View and modify component properties on the fly through chrome developer tools.",
+    "version": "0.2",
+    "manifest_version": 3,
     "icons": {
         "16": "assets/icon16.png",
         "48": "assets/icon48.png",
         "128": "assets/icon128.png"
     },
-
-    "browser_action": {
-        "default_popup": "hello.html",
-        "default_icon": "assets/icon128.png"
+    "action": {
+        "default_popup": "popup.html",
+        "default_icon": {
+            "16": "assets/icon16.png",
+            "48": "assets/icon48.png",
+            "128": "assets/icon128.png"
+        }
     },
-
-
-    "devtools_page": "prism.html",
-    "offline_enabled": true,
-    "permissions": ["tabs", "http://*/*", "https://*/*"]
+    "devtools_page": "devtools.html",
+    "offline_enabled": true
 }
