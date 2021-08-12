@@ -6,9 +6,9 @@ const computeComponentProperties = () => {
       // Polymer element
 
       /**
-       * Safely handles circular references. If the current iterated value is a non-null object, check if the prototype is
+       * Safely handles circular dependencies. If the current iterated value is a non-null object, check if the prototype is
        * different than the default Object.prototype. Discard if it's the same (we don't need them). Cache the objects in the local
-       * cache variable, and check for object duplicates, so we avoid cyclic references, which break the JSON compliancy.
+       * cache variable, and check for object duplicates, so we avoid circular dependencies, which break the JSON compliancy.
        */
       const safeStringify = (obj, indent = 2) => {
         let cache = [];
