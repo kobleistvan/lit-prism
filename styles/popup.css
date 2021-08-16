@@ -1,4 +1,31 @@
 html {
-  min-height: 5em;
-  min-width: 20em;
+    min-height: 200px;
+    min-width: 400px;
+}
+
+.container {
+  color: #383838;
+  user-select: none;
+}
+
+.title {
+  margin-top: 20px;
+  font-size: 54px;
+}
+
+p {
+  font-style: italic;
+  font-size: 14px;
+  color: rgb(85, 85, 85);
+}
+
+.signature {
+  margin-top: 20px;
+  padding-top: 10px;
+  border-top: 1px solid #0000002b;
+  font-style: normal;
+}
+
+.logo {
+  width: 130px;
 }

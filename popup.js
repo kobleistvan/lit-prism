@@ -5,15 +5,11 @@ chrome.storage.sync.get('settings', (data) => {
   if (typeof settings.autoRefresh === 'undefined') {
     settings.autoRefresh = true;
   }
-  updateSettings();
+  document.getElementById('refreshButton').checked = settings.autoRefresh;
+  chrome.storage.sync.set({ settings });
 });
 
-document.getElementById('refreshButton').onclick = () => {
-  settings.autoRefresh = !settings.autoRefresh;
-  updateSettings();
-}
-
-const updateSettings = () => {
-  document.getElementById('status').innerHTML = settings.autoRefresh;
+document.getElementById('refreshButton').addEventListener('change', function () {
+  settings.autoRefresh = this.checked;
   chrome.storage.sync.set({ settings });
-}
+})

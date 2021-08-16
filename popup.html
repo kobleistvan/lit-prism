@@ -1,14 +1,52 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <link rel="stylesheet" href="styles/popup.css">
+    <meta charset='UTF-8' />
+    <link href="styles/bootstrap.min.css" rel="stylesheet">
+    <link href="styles/popup.css" rel="stylesheet">
   </head>
 
   <body>
-    <h1>Lit Prism</h1>
-    <p>Open the devtools, search for the Lit-Prism sidepanel and select an HTML element from the Elements panel.</p>
-    <button id="refreshButton">Automatically refresh data</button>
-    <p id="status"></p>
+    <div class="container">
+      <div class="row">
+        <div class="col-4">
+          <img class="logo" src="assets/litprism.png" />
+        </div>
+        <div class="col-8">
+          <h1 class="title">Lit Prism</h1>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col">
+          <p>
+            Open the developer tools (F12) and select the <strong>Lit Prism</strong> sidepane from within the Elements
+            panel.<br>
+            Select an HTML element from the Elements panel in order to view its properties.
+          </p>
+          <p>
+            Supported webcomponents are LitElement and PolymerElement components.
+          </p>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col">
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" id="refreshButton">
+            <label class="form-check-label" for="refreshButton">Automatically refresh property list</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col">
+          <p class="signature text-center">Made with ❤️ by <a href="http://kobleistvan.com" target="_blank">Isty</a></p>
+        </div>
+      </div>
+    </div>
+
     <script src="popup.js"></script>
+    <script src="bootstrap.bundle.min.js"></script>
   </body>
 </html>
