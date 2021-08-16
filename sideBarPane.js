@@ -31,6 +31,10 @@ const computeComponentProperties = () => {
       if (selectedElementClass) {
         const classPropertiesMap = selectedElementClass._classProperties;
 
+        // Might still not be a Lit element
+        if (!classPropertiesMap) {
+          return { message: 'The selected element is neither a Lit nor a Polymer webcomponent.' };
+        }
         const result = {}
         classPropertiesMap.forEach((element, key) => {
           result[key] = $0[key];
