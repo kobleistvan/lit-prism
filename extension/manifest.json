@@ -2,7 +2,7 @@
   "name": "Lit Prism",
   "description": "Inspect Lit or Polymer webcomponents 'through a prism'. View and modify component properties on the fly through Chrome DevTools.",
   "author": "Köble István",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "manifest_version": 3,
   "icons": {
     "16": "assets/icon16.png",

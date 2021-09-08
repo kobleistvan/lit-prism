@@ -13,10 +13,19 @@ const computeComponentProperties = () => {
       const safeStringify = (obj, indent = 2) => {
         let cache = [];
 
-        const retVal = JSON.stringify(obj, (key, value) =>
-          typeof value === "object" && value !== null ? Object.getPrototypeOf(value) !== Object.prototype || cache.includes(value) ? undefined : cache.push(value) && value : value,
+        return JSON.stringify(obj, (key, value) => {
+          if (typeof value === "object" && value !== null) {
+            if ((Object.getPrototypeOf(value) !== Object.prototype && Object.getPrototypeOf(value) !== Array.prototype) || cache.includes(value)) {
+              return undefined
+            } else {
+              cache.push(value);
+              return value;
+            }
+          } else {
+            return value;
+          }
+        },
           indent);
-        return retVal;
       };
 
       const data = Object.assign({}, $0.__data, $0.__data__);
@@ -55,7 +64,7 @@ let updateElementProperties;
 let autoRefresh = true;
 
 chrome.storage.sync.get('settings', (data) => {
-  if (data.settings.autoRefresh === false) {
+  if (!data.settings || data.settings.autoRefresh === false) {
     autoRefresh = false;
   }
 });
