@@ -10,28 +10,32 @@ const computeComponentProperties = () => {
        * different than the default Object.prototype. Discard if it's the same (we don't need them). Cache the objects in the local
        * cache variable, and check for object duplicates, so we avoid circular dependencies, which break the JSON compliancy.
        */
-      const safeStringify = (obj, indent = 2) => {
-        let cache = [];
+      const stringify = function (val, depth, replacer, space) {
+        depth = isNaN(+depth) ? 1 : depth;
+        function _build(key, val, depth, o, a) { // (JSON.stringify() has it's own rules, which we respect here by using it for property iteration)
+          return !val || typeof val != 'object' ? val : (a = Array.isArray(val), JSON.stringify(val, function (k, v) { if (a || depth > 0) { if (replacer) v = replacer(k, v); if (!k) return (a = Array.isArray(v), val = v); !o && (o = a ? [] : {}); o[k] = _build(k, v, a ? depth : depth - 1); } }), o || (a ? [] : {}));
+        }
+        return JSON.stringify(_build('', val, depth), null, space);
+      }
 
-        return JSON.stringify(obj, (key, value) => {
-          if (typeof value === "object" && value !== null) {
-            if ((Object.getPrototypeOf(value) !== Object.prototype && Object.getPrototypeOf(value) !== Array.prototype) || cache.includes(value)) {
-              return undefined
-            } else {
-              cache.push(value);
-              return value;
-            }
-          } else {
-            return value;
+      const tagName = $0.localName;
+      const selectedElementClass = window.customElements.get(tagName);
+
+      const alternativeData = {}
+      if (selectedElementClass) {
+        const classPropertiesMap = selectedElementClass.properties;
+        if (classPropertiesMap && typeof classPropertiesMap === 'object') {
+          const props = Object.keys(classPropertiesMap).sort();
+
+          for (const prop of props) {
+            alternativeData[prop] = $0[prop];
           }
-        },
-          indent);
-      };
+        }
+      }
 
-      const data = Object.assign({}, $0.__data, $0.__data__);
+      const data = Object.assign({}, $0.__data, $0.__data__, alternativeData);
 
-      // Need to parse it back to a JSON object
-      return JSON.parse(safeStringify(data));
+      return JSON.parse(stringify(data, 7));
     } else {
       // Lit element
       const tagName = $0.localName;
@@ -73,6 +77,7 @@ const createSidebarPaneCallback = (sidebar) => {
 
   // Update element properties
   updateElementProperties = () => {
+    // sidebar.setExpression("(" + computeComponentProperties.toString() + ")()");
     chrome.devtools.inspectedWindow.eval("(" + computeComponentProperties + ")()",
       (result, isException) => {
         if (isException) {
