@@ -1,5 +1,32 @@
-const panels = chrome && chrome.devtools && chrome.devtools.panels;
+let cachedResult = {};
+let rerenderData = true;
+let intervalId;
+let updateElementProperties;
+let autoRefresh = true;
+const dataRefreshIntervalMs = 300;
 
+// Get & apply settings from local storage
+chrome.storage.sync.get('settings', (data) => {
+  if (!data.settings || data.settings.autoRefresh === false) {
+    autoRefresh = false;
+  }
+});
+
+// Listen for changes in settings from local storage & apply the effects
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'sync' && changes.settings?.newValue) {
+    autoRefresh = Boolean(changes.settings.newValue.autoRefresh);
+
+    if (autoRefresh === false && intervalId) {
+      clearInterval(intervalId);
+      intervalId = null;
+    } else if (!intervalId) {
+      intervalId = setInterval(updateElementProperties, dataRefreshIntervalMs);
+    }
+  }
+});
+
+// Computes the properties and its values of the selected polymer or lit component
 const computeComponentProperties = () => {
   if ($0) {
     if ($0.__data__ || $0.__data) {
@@ -10,7 +37,7 @@ const computeComponentProperties = () => {
        * different than the default Object.prototype. Discard if it's the same (we don't need them). Cache the objects in the local
        * cache variable, and check for object duplicates, so we avoid circular dependencies, which break the JSON compliancy.
        */
-      const stringify = function (val, depth, replacer, space) {
+      const stringify = (val, depth, replacer, space) => {
         depth = isNaN(+depth) ? 1 : depth;
         function _build(key, val, depth, o, a) { // (JSON.stringify() has it's own rules, which we respect here by using it for property iteration)
           return !val || typeof val != 'object' ? val : (a = Array.isArray(val), JSON.stringify(val, function (k, v) { if (a || depth > 0) { if (replacer) v = replacer(k, v); if (!k) return (a = Array.isArray(v), val = v); !o && (o = a ? [] : {}); o[k] = _build(k, v, a ? depth : depth - 1); } }), o || (a ? [] : {}));
@@ -35,7 +62,16 @@ const computeComponentProperties = () => {
 
       const data = Object.assign({}, $0.__data, $0.__data__, alternativeData);
 
-      return JSON.parse(stringify(data, 7));
+      // stringify normal
+      let stringifiedData;
+      try {
+        stringifiedData = JSON.stringify(data);
+      } catch (error) {
+        // Stringifying the whole data failed, due to circular dependency, returning limited stringification
+        stringifiedData = stringify(data, 6);
+      }
+
+      return JSON.parse(stringifiedData);
     } else {
       // Lit element
       const tagName = $0.localName;
@@ -61,23 +97,10 @@ const computeComponentProperties = () => {
   }
 };
 
-let cachedResult = {};
-let rerenderData = true;
-let intervalId;
-let updateElementProperties;
-let autoRefresh = true;
-
-chrome.storage.sync.get('settings', (data) => {
-  if (!data.settings || data.settings.autoRefresh === false) {
-    autoRefresh = false;
-  }
-});
-
+// Callback method of the sidebar pane creation method. Sets the object in the sidebar pane, if it changed from the one cached.
 const createSidebarPaneCallback = (sidebar) => {
-
   // Update element properties
   updateElementProperties = () => {
-    // sidebar.setExpression("(" + computeComponentProperties.toString() + ")()");
     chrome.devtools.inspectedWindow.eval("(" + computeComponentProperties + ")()",
       (result, isException) => {
         if (isException) {
@@ -89,6 +112,7 @@ const createSidebarPaneCallback = (sidebar) => {
           if (JSON.stringify(cachedResult) !== JSON.stringify(result)) {
             rerenderData = true;
           }
+
           cachedResult = result;
         }
 
@@ -102,24 +126,21 @@ const createSidebarPaneCallback = (sidebar) => {
 
     if (!intervalId && autoRefresh) {
       // Update data periodically
-      intervalId = setInterval(updateElementProperties, 250);
+      intervalId = setInterval(updateElementProperties, dataRefreshIntervalMs);
     }
-  }
+  };
 
-  panels.elements.onSelectionChanged.addListener(updateElementProperties);
-};
-
-panels && panels.elements.createSidebarPane("Lit Prism", createSidebarPaneCallback);
-
-chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === 'sync' && changes.settings?.newValue) {
-    autoRefresh = Boolean(changes.settings.newValue.autoRefresh);
-
-    if (autoRefresh === false && intervalId) {
+  clearOldAndUpdateElementProperties = (sidebar) => {
+    if (intervalId) {
       clearInterval(intervalId);
       intervalId = null;
-    } else if (!intervalId) {
-      intervalId = setInterval(updateElementProperties, 250);
     }
-  }
-});
+
+    updateElementProperties(sidebar);
+  };
+
+  panels.elements.onSelectionChanged.addListener(clearOldAndUpdateElementProperties);
+};
+
+const panels = chrome && chrome.devtools && chrome.devtools.panels;
+panels && panels.elements.createSidebarPane("Lit Prism", createSidebarPaneCallback);
