@@ -71,17 +71,25 @@ const computeComponentProperties = () => {
         for (const dataKey in data) {
           let stringifiedDataValue;
           let limitedStringification = false;
+          let isLimitedDataValueAnArray = false;
           try {
             stringifiedDataValue = JSON.stringify(data[dataKey]);
           } catch (error) {
             stringifiedDataValue = stringify(data[dataKey], 6);
             limitedStringification = true;
+            if (Array.isArray(data[dataKey])) {
+              isLimitedDataValueAnArray = true;
+            }
           }
 
           if (stringifiedDataValue) {
             stringifiableData[dataKey] = JSON.parse(stringifiedDataValue);
             if (limitedStringification) {
-              stringifiableData[dataKey]["$ LIT-PRISM MESSAGE"] = "This data value has been truncated to only a few levels deep, since it contains a circular reference and cannot be stringified.";
+              if (isLimitedDataValueAnArray) {
+                stringifiableData[dataKey].unshift("$ LIT-PRISM MESSAGE: This data value has been truncated to only a few levels deep, since it contains a circular reference and cannot be stringified.");
+              } else {
+                stringifiableData[dataKey]["$ LIT-PRISM MESSAGE"] = "This data value has been truncated to only a few levels deep, since it contains a circular reference and cannot be stringified.";
+              }
             }
           } else {
             stringifiableData[dataKey] = 'undefined';
