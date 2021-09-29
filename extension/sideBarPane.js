@@ -3,7 +3,7 @@ let rerenderData = true;
 let intervalId;
 let updateElementProperties;
 let autoRefresh = true;
-const dataRefreshIntervalMs = 300;
+const dataRefreshIntervalMs = 250;
 
 // Get & apply settings from local storage
 chrome.storage.sync.get('settings', (data) => {
@@ -62,16 +62,34 @@ const computeComponentProperties = () => {
 
       const data = Object.assign({}, $0.__data, $0.__data__, alternativeData);
 
-      // stringify normal
-      let stringifiedData;
+      // Attempt a regular stringification. If it succeeds, return it quickly. Otherwise, try to stringify its props. If some fail, limit the depth of stringification.
+      let stringifiableData = {};
       try {
-        stringifiedData = JSON.stringify(data);
+        JSON.stringify(data);
+        stringifiableData = data;
       } catch (error) {
-        // Stringifying the whole data failed, due to circular dependency, returning limited stringification
-        stringifiedData = stringify(data, 6);
+        for (const dataKey in data) {
+          let stringifiedDataValue;
+          let limitedStringification = false;
+          try {
+            stringifiedDataValue = JSON.stringify(data[dataKey]);
+          } catch (error) {
+            stringifiedDataValue = stringify(data[dataKey], 6);
+            limitedStringification = true;
+          }
+
+          if (stringifiedDataValue) {
+            stringifiableData[dataKey] = JSON.parse(stringifiedDataValue);
+            if (limitedStringification) {
+              stringifiableData[dataKey]["$ LIT-PRISM MESSAGE"] = "This data value has been truncated to only a few levels deep, since it contains a circular reference and cannot be stringified.";
+            }
+          } else {
+            stringifiableData[dataKey] = 'undefined';
+          }
+        }
       }
 
-      return JSON.parse(stringifiedData);
+      return stringifiableData;
     } else {
       // Lit element
       const tagName = $0.localName;
@@ -84,11 +102,11 @@ const computeComponentProperties = () => {
         if (!classPropertiesMap) {
           return { message: 'The selected element is neither a Lit nor a Polymer webcomponent.' };
         }
-        const result = {}
+        const data = {}
         classPropertiesMap.forEach((element, key) => {
-          result[key] = $0[key];
+          data[key] = $0[key];
         });
-        return result;
+        return data;
       } else {
         // Neither a Polymer nor a Lit element
         return { message: 'The selected element is neither a Lit nor a Polymer webcomponent.' };
@@ -101,33 +119,31 @@ const computeComponentProperties = () => {
 const createSidebarPaneCallback = (sidebar) => {
   // Update element properties
   updateElementProperties = () => {
-    chrome.devtools.inspectedWindow.eval("(" + computeComponentProperties + ")()",
-      (result, isException) => {
-        if (isException) {
-          if (JSON.stringify(cachedResult) !== JSON.stringify(isException)) {
-            rerenderData = true;
-          }
-          cachedResult = isException;
-        } else {
-          if (JSON.stringify(cachedResult) !== JSON.stringify(result)) {
-            rerenderData = true;
-          }
-
-          cachedResult = result;
+    chrome.devtools.inspectedWindow.eval("(" + computeComponentProperties + ")()", (result, isException) => {
+      if (isException) {
+        if (JSON.stringify(cachedResult) !== JSON.stringify(isException)) {
+          rerenderData = true;
+        }
+        cachedResult = isException;
+      } else {
+        if (JSON.stringify(cachedResult) !== JSON.stringify(result)) {
+          rerenderData = true;
         }
 
-        if (rerenderData) {
-          sidebar.setObject(cachedResult);
-          rerenderData = false;
-        }
+        cachedResult = result;
       }
-    );
+
+      if (rerenderData) {
+        sidebar.setObject(cachedResult);
+        rerenderData = false;
+      }
 
 
-    if (!intervalId && autoRefresh) {
-      // Update data periodically
-      intervalId = setInterval(updateElementProperties, dataRefreshIntervalMs);
-    }
+      if (!intervalId && autoRefresh) {
+        // Update data periodically
+        intervalId = setInterval(updateElementProperties, dataRefreshIntervalMs);
+      }
+    });
   };
 
   clearOldAndUpdateElementProperties = (sidebar) => {
