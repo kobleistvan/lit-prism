@@ -3,7 +3,7 @@ let rerenderData = true;
 let intervalId;
 let updateElementProperties;
 let autoRefresh = true;
-const dataRefreshIntervalMs = 250;
+const dataRefreshIntervalMs = 1000;
 
 // Get & apply settings from local storage
 chrome.storage.sync.get('settings', (data) => {
@@ -29,118 +29,94 @@ chrome.storage.onChanged.addListener((changes, area) => {
 // Computes the properties and its values of the selected polymer or lit component
 const computeComponentProperties = () => {
   if ($0) {
-    if ($0.__data__ || $0.__data) {
-      // Polymer element
+    const wcClass = window.customElements.get($0.localName);
+    if (wcClass) {
+      let properties = Object.getOwnPropertyNames($0);
+      properties = properties.concat(Object.getOwnPropertyNames($0.__proto__));
 
-      /**
-       * Safely handles circular dependencies. If the current iterated value is a non-null object, check if the prototype is
-       * different than the default Object.prototype. Discard if it's the same (we don't need them). Cache the objects in the local
-       * cache variable, and check for object duplicates, so we avoid circular dependencies, which break the JSON compliancy.
-       */
-      const stringify = (val, depth, replacer, space) => {
-        depth = isNaN(+depth) ? 1 : depth;
-        function _build(key, val, depth, o, a) { // (JSON.stringify() has it's own rules, which we respect here by using it for property iteration)
-          return !val || typeof val != 'object' ? val : (a = Array.isArray(val), JSON.stringify(val, function (k, v) { if (a || depth > 0) { if (replacer) v = replacer(k, v); if (!k) return (a = Array.isArray(v), val = v); !o && (o = a ? [] : {}); o[k] = _build(k, v, a ? depth : depth - 1); } }), o || (a ? [] : {}));
-        }
-        return JSON.stringify(_build('', val, depth), null, space);
+      if (wcClass.__reactivePropertyKeys) {
+        properties = properties.concat([...wcClass.__reactivePropertyKeys]);
       }
 
-      const tagName = $0.localName;
-      const selectedElementClass = window.customElements.get(tagName);
-
-      const alternativeData = {}
-      if (selectedElementClass) {
-        const classPropertiesMap = selectedElementClass.properties;
-        if (classPropertiesMap && typeof classPropertiesMap === 'object') {
-          const props = Object.keys(classPropertiesMap).sort();
-
-          for (const prop of props) {
-            alternativeData[prop] = $0[prop];
-          }
-        }
+      if (wcClass.elementProperties && wcClass.elementProperties.size) {
+        wcClass.elementProperties.forEach((element, key) => {
+          properties.push(key);
+        })
       }
 
-      const data = Object.assign({}, $0.__data, $0.__data__, alternativeData);
+      properties = [...new Set(properties)];
 
-      // Attempt a regular stringification. If it succeeds, return it quickly. Otherwise, try to stringify its props. If some fail, limit the depth of stringification.
-      let stringifiableData = {};
-      try {
-        JSON.stringify(data);
-        stringifiableData = data;
-      } catch (error) {
-        for (const dataKey in data) {
-          let stringifiedDataValue;
-          let limitedStringification = false;
-          let isLimitedDataValueAnArray = false;
-          try {
-            stringifiedDataValue = JSON.stringify(data[dataKey]);
-          } catch (error) {
-            stringifiedDataValue = stringify(data[dataKey], 6);
-            limitedStringification = true;
-            if (Array.isArray(data[dataKey])) {
-              isLimitedDataValueAnArray = true;
+      const data = {
+        _FUNCTIONS: []
+      };
+      if (properties.length) {
+        // Go through each property. If it's a function, move it into _FUNCTIONS,since they're not that relevant.
+        properties.forEach((key) => {
+          if (key !== '_template') {
+            if (typeof $0[key] === 'function') {
+              data._FUNCTIONS.push(key);
+            } else {
+              data[key] = $0[key];
             }
           }
+        });
 
-          if (stringifiedDataValue) {
-            stringifiableData[dataKey] = JSON.parse(stringifiedDataValue);
-            if (limitedStringification) {
-              if (isLimitedDataValueAnArray) {
-                stringifiableData[dataKey].unshift("$ LIT-PRISM MESSAGE: This data value has been truncated to only a few levels deep, since it contains a circular reference and cannot be stringified.");
-              } else {
-                stringifiableData[dataKey]["$ LIT-PRISM MESSAGE"] = "This data value has been truncated to only a few levels deep, since it contains a circular reference and cannot be stringified.";
+        /**
+         * Safely handles circular dependencies. If the current iterated value is a non-null object, check if the prototype is
+         * different than the default Object.prototype. Discard if it's the same (we don't need them). Cache the objects in the local
+         * cache variable, and check for object duplicates, so we avoid circular dependencies, which break the JSON compliancy.
+         */
+        const stringify = (val, depth, replacer, space) => {
+          depth = isNaN(+depth) ? 1 : depth;
+          function _build(key, val, depth, o, a) { // (JSON.stringify() has it's own rules, which we respect here by using it for property iteration)
+            return !val || typeof val != 'object' ? val : (a = Array.isArray(val), JSON.stringify(val, function (k, v) { if (a || depth > 0) { if (replacer) v = replacer(k, v); if (!k) return (a = Array.isArray(v), val = v); !o && (o = a ? [] : {}); o[k] = _build(k, v, a ? depth : depth - 1); } }), o || (a ? [] : {}));
+          }
+          return JSON.stringify(_build('', val, depth), null, space);
+        }
+
+        // Attempt a regular stringification. If it succeeds, return it quickly. Otherwise, try to stringify its props. If some fail, limit the depth of stringification.
+        let stringifiableData = {};
+        try {
+          JSON.stringify(data);
+          stringifiableData = data;
+        } catch (error) {
+          for (const dataKey in data) {
+            let stringifiedDataValue;
+            let limitedStringification = false;
+            let isLimitedDataValueAnArray = false;
+            try {
+              stringifiedDataValue = JSON.stringify(data[dataKey]);
+            } catch (error) {
+              stringifiedDataValue = stringify(data[dataKey], 3);
+              limitedStringification = true;
+              if (Array.isArray(data[dataKey])) {
+                isLimitedDataValueAnArray = true;
               }
             }
-          } else {
-            stringifiableData[dataKey] = 'undefined';
+
+            if (stringifiedDataValue) {
+              stringifiableData[dataKey] = JSON.parse(stringifiedDataValue);
+              if (limitedStringification) {
+                if (isLimitedDataValueAnArray) {
+                  stringifiableData[dataKey].unshift("$ LIT-PRISM MESSAGE: This data value has been truncated to only a few levels deep, since it contains a circular reference and cannot be stringified.");
+                } else {
+                  stringifiableData[dataKey]["$ LIT-PRISM MESSAGE"] = "This data value has been truncated to only a few levels deep, since it contains a circular reference and cannot be stringified.";
+                }
+              }
+            } else {
+              stringifiableData[dataKey] = 'undefined';
+            }
           }
         }
-      }
 
-      return stringifiableData;
-    } else {
-      // Lit element
-      const tagName = $0.localName;
-      const selectedElementClass = window.customElements.get(tagName);
-
-      if (selectedElementClass) {
-        const classPropertiesMap = selectedElementClass._classProperties;
-        const elementProperties = selectedElementClass.elementProperties;
-
-        if (classPropertiesMap) {
-          // Lit v1 element
-          const data = {}
-          classPropertiesMap.forEach((element, key) => {
-            data[key] = $0[key];
-          });
-          return data;
-        } else if (elementProperties && elementProperties.size) {
-          // Lit v2 element
-          const data = {}
-          elementProperties.forEach((element, key) => {
-            data[key] = $0[key];
-          });
-          return data;
-        } else {
-          // Perhaps native webcomponent... check proto stuff
-          // const miscProps = [...new Set(Object.getOwnPropertyNames($0).concat(Object.getOwnPropertyNames($0.__proto__)))];
-          const miscProps = Object.getOwnPropertyNames($0.__proto__);
-
-          if (miscProps.length) {
-            const data = {}
-            miscProps.forEach((key) => {
-              data[key] = $0[key];
-            });
-            return data;
-          } else {
-            // Might still not be a Lit element
-            return { message: 'The selected element is neither a Lit v1 nor Lit v2 nor a Polymer webcomponent.' };
-          }
-        }
+        return stringifiableData;
       } else {
-        // Neither a Polymer nor a Lit element
-        return { message: 'The selected element is not a webcomponent.' };
+        // Might still not be a Lit element
+        return { message: 'The selected element is neither a Lit v1 nor Lit v2 nor a Polymer webcomponent.' };
       }
+    } else {
+      // Neither a Polymer nor a Lit element
+      return { message: 'The selected element is not a webcomponent.' };
     }
   }
 };
