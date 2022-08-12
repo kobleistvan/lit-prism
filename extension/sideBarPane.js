@@ -105,19 +105,41 @@ const computeComponentProperties = () => {
 
       if (selectedElementClass) {
         const classPropertiesMap = selectedElementClass._classProperties;
+        const elementProperties = selectedElementClass.elementProperties;
 
-        // Might still not be a Lit element
-        if (!classPropertiesMap) {
-          return { message: 'The selected element is neither a Lit nor a Polymer webcomponent.' };
+        if (classPropertiesMap) {
+          // Lit v1 element
+          const data = {}
+          classPropertiesMap.forEach((element, key) => {
+            data[key] = $0[key];
+          });
+          return data;
+        } else if (elementProperties && elementProperties.size) {
+          // Lit v2 element
+          const data = {}
+          elementProperties.forEach((element, key) => {
+            data[key] = $0[key];
+          });
+          return data;
+        } else {
+          // Perhaps native webcomponent... check proto stuff
+          // const miscProps = [...new Set(Object.getOwnPropertyNames($0).concat(Object.getOwnPropertyNames($0.__proto__)))];
+          const miscProps = Object.getOwnPropertyNames($0.__proto__);
+
+          if (miscProps.length) {
+            const data = {}
+            miscProps.forEach((key) => {
+              data[key] = $0[key];
+            });
+            return data;
+          } else {
+            // Might still not be a Lit element
+            return { message: 'The selected element is neither a Lit v1 nor Lit v2 nor a Polymer webcomponent.' };
+          }
         }
-        const data = {}
-        classPropertiesMap.forEach((element, key) => {
-          data[key] = $0[key];
-        });
-        return data;
       } else {
         // Neither a Polymer nor a Lit element
-        return { message: 'The selected element is neither a Lit nor a Polymer webcomponent.' };
+        return { message: 'The selected element is not a webcomponent.' };
       }
     }
   }
